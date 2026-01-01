@@ -41,7 +41,6 @@ body {
 }
 
 h2 { text-align: center; margin-bottom: 10px; }
-h3 { margin-top: 20px; }
 
 input {
   width: 100%;
@@ -125,12 +124,7 @@ button:active { opacity: 0.8; }
   <h3>Dodaj procedurę</h3>
   <input id="newName" placeholder="Nazwa">
   <input id="newValue" type="number" placeholder="Wartość">
-  <input id="newCategory" placeholder="Kategoria">
   <button class="full" onclick="addProcedure()">Dodaj procedurę</button>
-
-  <h3>Dodaj kategorię</h3>
-  <input id="categoryName" placeholder="Nazwa kategorii">
-  <button class="full" onclick="addCategory()">Dodaj kategorię</button>
 
   <h3>Import danych z Google Sheets</h3>
   <button class="full" onclick="importFromSheet()">🔄 Odśwież dane z Google Sheets</button>
@@ -154,7 +148,7 @@ else if (window.matchMedia("(prefers-color-scheme: dark)").matches) document.bod
 
 const themeToggle = document.getElementById("themeToggle");
 function updateThemeButton() {
-  themeToggle.textContent = document.body.classList.contains("dark") ? ☀️ Tryb jasny" : "🌙 Tryb ciemny";
+  themeToggle.textContent = document.body.classList.contains("dark") ? "☀️ Tryb jasny" : "🌙 Tryb ciemny";
 }
 themeToggle.onclick = () => {
   document.body.classList.toggle("dark");
@@ -168,11 +162,10 @@ let editMode = false;
 let searchText = "";
 
 let data = JSON.parse(localStorage.getItem("data")) || {
-  categories: ["Diagnostyka", "Zabiegi"],
   procedures: [
-    { name: "RTG", value: 120, category: "Diagnostyka", qty: 0, favorite: false },
-    { name: "USG", value: 80, category: "Diagnostyka", qty: 0, favorite: false },
-    { name: "Zabieg A", value: 200, category: "Zabiegi", qty: 0, favorite: false }
+    { name: "RTG", value: 120, qty: 0, favorite: false },
+    { name: "USG", value: 80, qty: 0, favorite: false },
+    { name: "Zabieg A", value: 200, qty: 0, favorite: false }
   ]
 };
 
@@ -186,55 +179,48 @@ search.addEventListener("input", e => { searchText = e.target.value.toLowerCase(
 /* ===== RENDER ===== */
 function render() {
   content.innerHTML = "";
-  data.categories.forEach(cat => {
-    const items = data.procedures.filter(p => p.category===cat && p.name.toLowerCase().includes(searchText))
-      .sort((a,b) => b.favorite - a.favorite);
-    if (!items.length) return;
+  const items = data.procedures.filter(p=>p.name.toLowerCase().includes(searchText))
+    .sort((a,b)=>b.favorite - a.favorite);
 
-    const h = document.createElement("h3");
-    h.textContent = cat;
-    content.appendChild(h);
+  items.forEach(p => {
+    const row = document.createElement("div");
+    row.className = "procedure" + (p.qty>0 ? " active" : "");
 
-    items.forEach(p => {
-      const row = document.createElement("div");
-      row.className = "procedure" + (p.qty>0 ? " active" : "");
+    const left = document.createElement("div");
+    left.className = "left";
 
-      const left = document.createElement("div");
-      left.className = "left";
+    const fav = document.createElement("span");
+    fav.className = "favorite";
+    fav.textContent = p.favorite ? "❤️" : "🤍";
+    fav.onclick = ()=>{ p.favorite=!p.favorite; update(); };
 
-      const fav = document.createElement("span");
-      fav.className = "favorite";
-      fav.textContent = p.favorite ? "❤️" : "🤍";
-      fav.onclick = ()=>{ p.favorite=!p.favorite; update(); };
+    const name = document.createElement("span");
+    name.textContent = `${p.name} (${p.value} zł)`;
+    left.append(fav,name);
 
-      const name = document.createElement("span");
-      name.textContent = `${p.name} (${p.value} zł)`;
-      left.append(fav,name);
+    const minus = document.createElement("button");
+    minus.textContent="−";
+    minus.onclick=()=>{ if(p.qty>0) p.qty--; update(); };
 
-      const minus = document.createElement("button");
-      minus.textContent="−";
-      minus.onclick=()=>{ if(p.qty>0) p.qty--; update(); };
+    const qty = document.createElement("span");
+    qty.className="qty";
+    qty.textContent=p.qty;
 
-      const qty = document.createElement("span");
-      qty.className="qty";
-      qty.textContent=p.qty;
+    const plus = document.createElement("button");
+    plus.textContent="+";
+    plus.onclick=()=>{ p.qty++; update(); };
 
-      const plus = document.createElement("button");
-      plus.textContent="+";
-      plus.onclick=()=>{ p.qty++; update(); };
+    row.append(left, minus, qty, plus);
 
-      row.append(left, minus, qty, plus);
+    if(editMode){
+      const del = document.createElement("span");
+      del.className="delete";
+      del.textContent="✕";
+      del.onclick=()=>{ data.procedures.splice(data.procedures.indexOf(p),1); update(); };
+      row.appendChild(del);
+    }
 
-      if(editMode){
-        const del = document.createElement("span");
-        del.className="delete";
-        del.textContent="✕";
-        del.onclick=()=>{ data.procedures.splice(data.procedures.indexOf(p),1); update(); };
-        row.appendChild(del);
-      }
-
-      content.appendChild(row);
-    });
+    content.appendChild(row);
   });
 }
 
@@ -252,20 +238,12 @@ editBtn.onclick = ()=>{
   editBtn.textContent=editMode?"Zapisz":"Edytuj";
 };
 
-/* ===== ADD PROCEDURE / CATEGORY ===== */
+/* ===== ADD PROCEDURE ===== */
 function addProcedure(){
-  if(!newName.value||!newValue.value||!newCategory.value)return;
-  if(!data.categories.includes(newCategory.value))data.categories.push(newCategory.value);
-  data.procedures.push({ name:newName.value,value:Number(newValue.value),category:newCategory.value,qty:0,favorite:false });
-  newName.value=newValue.value=newCategory.value="";
+  if(!newName.value||!newValue.value)return;
+  data.procedures.push({ name:newName.value,value:Number(newValue.value),qty:0,favorite:false });
+  newName.value=newValue.value="";
   update();
-}
-function addCategory(){
-  if(categoryName.value && !data.categories.includes(categoryName.value)){
-    data.categories.push(categoryName.value);
-    categoryName.value="";
-    update();
-  }
 }
 
 /* ===== RESET BUTTON ===== */
@@ -287,27 +265,22 @@ async function importFromSheet(){
     const lines=text.trim().split("\n").slice(1);
 
     const newProcedures=[];
-    const categories=new Set();
 
     lines.forEach(line=>{
-      const [name,value,category]=line.split(",");
-      if(!name||!value||!category)return;
-
+      const [name,value]=line.split(",");
+      if(!name||!value)return;
       const numericValue=parseFloat(value.replace(/[^0-9.-]+/g,""));
       if(!isNaN(numericValue)){
-        categories.add(category.trim());
         const existing=data.procedures.find(p=>p.name===name.trim());
         newProcedures.push({
           name:name.trim(),
           value:numericValue,
-          category:category.trim(),
           qty:existing?.qty||0,
           favorite:existing?.favorite||false
         });
       }
     });
 
-    data.categories=[...categories];
     data.procedures=newProcedures;
     update();
     alert("Dane zsynchronizowane ✅");
