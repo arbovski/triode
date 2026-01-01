@@ -1,0 +1,31 @@
+name,value,category
+rvg,15,RTG
+opg,36,RTG
+microCT,45,RTG
+CBCT,120,RTG
+"badanie, konsultacja, recepta",44,ogólne
+badanie kontrolne,26,ogólne
+znieczulenie,18,ogólne
+i klasa,100,zachowawcza
+ii klasa,120,zachowawcza
+mod,150,zachowawcza
+włókno,75,zachowawcza
+opatrunek,90,zachowawcza
+fuji,105,zachowawcza
+interwencja,105,endodoncja
+otwarcie,50,endodoncja
+odbudowa,120,endodoncja
+endo 1 1/2,175,endodoncja
+endo 2 1/2 ,185,endodoncja
+mikro 1 1/2,200,endodoncja
+mikro 2 1/2,210,endodoncja
+mikro 3 1/2,275,endodoncja
+mikro 4 1/2,280,endodoncja
+ekstrakcja,120,chirurgia
+ekstrakcja 2,145,chirurgia
+szycie,30,chirurgia
+cementowanie 1,80,dodatki
+cementowanie 2,130,dodatki
+mleczak,90,dodatki
+skaling,100,perio
+hig,120,perio

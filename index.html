@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Procedury</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<style>
+html, body {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+:root {
+  --bg: #f2f2f7;
+  --card: #ffffff;
+  --text: #1c1c1e;
+  --accent: #007aff;
+  --active: #e5f0ff;
+  --border: #d1d1d6;
+}
+
+body.dark {
+  --bg: #000000;
+  --card: #1c1c1e;
+  --text: #ffffff;
+  --accent: #0a84ff;
+  --active: #2c2c2e;
+  --border: #3a3a3c;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+h2 { text-align: center; margin-bottom: 10px; }
+h3 { margin-top: 20px; }
+
+input {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+  background: var(--card);
+  color: var(--text);
+}
+
+button {
+  border: none;
+  border-radius: 14px;
+  background: var(--accent);
+  color: white;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.full {
+  width: 100%;
+  height: auto;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+button:active { opacity: 0.8; }
+
+.procedure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card);
+  padding: 12px;
+  border-radius: 18px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.procedure.active { background: var(--active); }
+
+.left { display: flex; align-items: center; gap: 8px; }
+.qty { min-width: 20px; text-align: center; }
+.favorite { cursor: pointer; }
+.delete { color: red; margin-left: 6px; cursor: pointer; }
+
+.sum { font-size: 26px; font-weight: 600; text-align: center; margin-top: 20px; }
+
+.editor {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+}
+</style>
+</head>
+
+<body>
+
+<h2>Procedury</h2>
+
+<button id="themeToggle" class="full">🌙 Tryb ciemny</button>
+<input id="search" placeholder="Szukaj procedury...">
+
+<div id="content"></div>
+
+<div class="sum">
+  Suma: <span id="total">0</span> zł
+</div>
+
+<button id="editBtn" class="full">Edytuj</button>
+
+<div class="editor" id="editor" style="display:none;">
+  <h3>Dodaj procedurę</h3>
+  <input id="newName" placeholder="Nazwa">
+  <input id="newValue" type="number" placeholder="Wartość">
+  <input id="newCategory" placeholder="Kategoria">
+  <button class="full" onclick="addProcedure()">Dodaj procedurę</button>
+
+  <h3>Dodaj kategorię</h3>
+  <input id="categoryName" placeholder="Nazwa kategorii">
+  <button class="full" onclick="addCategory()">Dodaj kategorię</button>
+
+  <h3>Import danych z Google Sheets</h3>
+  <button class="full" onclick="importFromSheet()">🔄 Odśwież dane z Google Sheets</button>
+</div>
+
+<script>
+/* ===== BLOCK GESTURE ZOOM (iOS) ===== */
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('gesturechange', e => e.preventDefault());
+document.addEventListener('gestureend', e => e.preventDefault());
+
+/* ===== PWA ===== */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+
+/* ===== THEME ===== */
+const savedTheme = localStorage.getItem("theme");
+if (savedTheme) {
+  document.body.classList.toggle("dark", savedTheme === "dark");
+} else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+  document.body.classList.add("dark");
+}
+
+const themeToggle = document.getElementById("themeToggle");
+function updateThemeButton() {
+  themeToggle.textContent = document.body.classList.contains("dark")
+    ? "☀️ Tryb jasny" : "🌙 Tryb ciemny";
+}
+themeToggle.onclick = () => {
+  document.body.classList.toggle("dark");
+  localStorage.setItem("theme",
+    document.body.classList.contains("dark") ? "dark" : "light");
+  updateThemeButton();
+};
+updateThemeButton();
+
+/* ===== DATA ===== */
+let editMode = false;
+let searchText = "";
+
+let data = JSON.parse(localStorage.getItem("data")) || {
+  categories: ["Diagnostyka", "Zabiegi"],
+  procedures: [
+    { name: "RTG", value: 120, category: "Diagnostyka", qty: 0, favorite: false },
+    { name: "USG", value: 80, category: "Diagnostyka", qty: 0, favorite: false },
+    { name: "Zabieg A", value: 200, category: "Zabiegi", qty: 0, favorite: false }
+  ]
+};
+
+const content = document.getElementById("content");
+const totalEl = document.getElementById("total");
+
+search.addEventListener("input", e => {
+  searchText = e.target.value.toLowerCase();
+  render();
+});
+
+/* ===== RENDER ===== */
+function render() {
+  content.innerHTML = "";
+  data.categories.forEach(cat => {
+    const items = data.procedures
+      .filter(p => p.category === cat && p.name.toLowerCase().includes(searchText))
+      .sort((a,b) => b.favorite - a.favorite);
+    if (!items.length) return;
+
+    const h = document.createElement("h3");
+    h.textContent = cat;
+    content.appendChild(h);
+
+    items.forEach(p => {
+      const row = document.createElement("div");
+      row.className = "procedure" + (p.qty > 0 ? " active" : "");
+
+      const left = document.createElement("div");
+      left.className = "left";
+
+      const fav = document.createElement("span");
+      fav.className = "favorite";
+      fav.textContent = p.favorite ? "❤️" : "🤍";
+      fav.onclick = () => { p.favorite = !p.favorite; update(); };
+
+      const name = document.createElement("span");
+      name.textContent = `${p.name} (${p.value} zł)`;
+      left.append(fav, name);
+
+      const minus = document.createElement("button");
+      minus.textContent = "−";
+      minus.onclick = () => { if (p.qty > 0) p.qty--; update(); };
+
+      const qty = document.createElement("span");
+      qty.className = "qty";
+      qty.textContent = p.qty;
+
+      const plus = document.createElement("button");
+      plus.textContent = "+";
+      plus.onclick = () => { p.qty++; update(); };
+
+      row.append(left, minus, qty, plus);
+
+      if (editMode) {
+        const del = document.createElement("span");
+        del.className = "delete";
+        del.textContent = "✕";
+        del.onclick = () => { data.procedures.splice(data.procedures.indexOf(p),1); update(); };
+        row.appendChild(del);
+      }
+
+      content.appendChild(row);
+    });
+  });
+}
+
+/* ===== CALCULATE / UPDATE ===== */
+function calculate() {
+  totalEl.textContent = data.procedures.reduce((s,p) => s + p.value * p.qty, 0);
+}
+function save() { localStorage.setItem("data", JSON.stringify(data)); }
+function update() { save(); render(); calculate(); }
+
+/* ===== EDIT MODE ===== */
+const editBtn = document.getElementById("editBtn");
+const editor = document.getElementById("editor");
+editBtn.onclick = () => {
+  editMode = !editMode;
+  editor.style.display = editMode ? "block" : "none";
+  editBtn.textContent = editMode ? "Zapisz" : "Edytuj";
+};
+
+/* ===== ADD PROCEDURE / CATEGORY ===== */
+function addProcedure() {
+  if (!newName.value || !newValue.value || !newCategory.value) return;
+  if (!data.categories.includes(newCategory.value)) data.categories.push(newCategory.value);
+  data.procedures.push({ name:newName.value,value:Number(newValue.value),category:newCategory.value,qty:0,favorite:false });
+  newName.value=newValue.value=newCategory.value="";
+  update();
+}
+function addCategory() {
+  if (categoryName.value && !data.categories.includes(categoryName.value)) {
+    data.categories.push(categoryName.value);
+    categoryName.value="";
+    update();
+  }
+}
+
+/* ===== IMPORT GOOGLE SHEETS ===== */
+const SHEET_ID = "1NCJRIh4rf1S2RfnOPjeqQbzVXVC22qZ2bJIVnpbum80";
+
+async function importFromSheet() {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+    const lines = text.trim().split("\n").slice(1);
+
+    const newProcedures = [];
+    const categories = new Set();
+
+    lines.forEach(line => {
+      const [name, value, category] = line.split(",");
+      if (!name || !value || !category) return;
+      categories.add(category);
+      const existing = data.procedures.find(p => p.name===name);
+      newProcedures.push({name,value:Number(value),category,qty:existing?.qty||0,favorite:existing?.favorite||false});
+    });
+
+    data.categories = [...categories];
+    data.procedures = newProcedures;
+    update();
+    alert("Dane zsynchronizowane ✅");
+  } catch(err) {
+    alert("Błąd pobierania danych: "+err);
+  }
+}
+
+update();
+</script>
+</body>
+</html>
