@@ -292,7 +292,17 @@ async function importFromSheet() {
       if (!name || !value || !category) return;
       categories.add(category);
       const existing = data.procedures.find(p => p.name===name);
-      newProcedures.push({name,value:Number(value),category,qty:existing?.qty||0,favorite:existing?.favorite||false});
+      const numericValue = parseFloat(value.replace(/[^0-9.-]+/g,""));
+if (!isNaN(numericValue)) {
+  newProcedures.push({
+    name: name.trim(),
+    value: numericValue,
+    category: category.trim(),
+    qty: existing?.qty || 0,
+    favorite: existing?.favorite || false
+  });
+}
+
     });
 
     data.categories = [...categories];
