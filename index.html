@@ -2,8 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Procedury</title>
 
 <link rel="manifest" href="manifest.json">
@@ -93,8 +92,6 @@ button:active { opacity: 0.8; }
 .favorite { cursor: pointer; }
 .delete { color: red; margin-left: 6px; cursor: pointer; }
 
-.sum { font-size: 26px; font-weight: 600; text-align: center; margin-top: 20px; }
-
 .editor {
   margin-top: 20px;
   padding-top: 15px;
@@ -107,14 +104,20 @@ button:active { opacity: 0.8; }
 
 <h2>Procedury</h2>
 
+<!-- SUMA + RESET -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <div class="sum">
+    Suma: <span id="total">0</span> zł
+  </div>
+  <button id="resetBtn" style="padding:6px 12px; border-radius:12px; background:#ff3b30; color:white; border:none;">
+    Reset
+  </button>
+</div>
+
 <button id="themeToggle" class="full">🌙 Tryb ciemny</button>
 <input id="search" placeholder="Szukaj procedury...">
 
 <div id="content"></div>
-
-<div class="sum">
-  Suma: <span id="total">0</span> zł
-</div>
 
 <button id="editBtn" class="full">Edytuj</button>
 
@@ -151,7 +154,6 @@ if (savedTheme) {
 } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
   document.body.classList.add("dark");
 }
-
 const themeToggle = document.getElementById("themeToggle");
 function updateThemeButton() {
   themeToggle.textContent = document.body.classList.contains("dark")
@@ -181,6 +183,7 @@ let data = JSON.parse(localStorage.getItem("data")) || {
 const content = document.getElementById("content");
 const totalEl = document.getElementById("total");
 
+/* ===== SEARCH ===== */
 search.addEventListener("input", e => {
   searchText = e.target.value.toLowerCase();
   render();
@@ -274,8 +277,16 @@ function addCategory() {
   }
 }
 
+/* ===== RESET BUTTON ===== */
+const resetBtn = document.getElementById("resetBtn");
+resetBtn.onclick = () => {
+  if (!confirm("Czy na pewno chcesz zresetować wszystkie wybrane procedury?")) return;
+  data.procedures.forEach(p => p.qty = 0);
+  update();
+};
+
 /* ===== IMPORT GOOGLE SHEETS ===== */
-const SHEET_ID = "1NCJRIh4rf1S2RfnOPjeqQbzVXVC22qZ2bJIVnpbum80";
+const SHEET_ID = "1NCJRIh4rf1S2RfnOPjeqQbzVXVC22qZ2bJIVnpbum80"; // <-- Twój arkusz
 
 async function importFromSheet() {
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
@@ -290,19 +301,19 @@ async function importFromSheet() {
     lines.forEach(line => {
       const [name, value, category] = line.split(",");
       if (!name || !value || !category) return;
-      categories.add(category);
-      const existing = data.procedures.find(p => p.name===name);
-      const numericValue = parseFloat(value.replace(/[^0-9.-]+/g,""));
-if (!isNaN(numericValue)) {
-  newProcedures.push({
-    name: name.trim(),
-    value: numericValue,
-    category: category.trim(),
-    qty: existing?.qty || 0,
-    favorite: existing?.favorite || false
-  });
-}
 
+      const numericValue = parseFloat(value.replace(/[^0-9.-]+/g,""));
+      if (!isNaN(numericValue)) {
+        categories.add(category.trim());
+        const existing = data.procedures.find(p => p.name===name.trim());
+        newProcedures.push({
+          name: name.trim(),
+          value: numericValue,
+          category: category.trim(),
+          qty: existing?.qty || 0,
+          favorite: existing?.favorite || false
+        });
+      }
     });
 
     data.categories = [...categories];
