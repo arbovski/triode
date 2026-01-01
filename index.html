@@ -104,7 +104,7 @@ button:active { opacity: 0.8; }
 
 <h2>Procedury</h2>
 
-<!-- SUMA + RESET -->
+<!-- SUMA + RESET NA GÓRZE -->
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
   <div class="sum">
     Suma: <span id="total">0</span> zł
@@ -137,7 +137,7 @@ button:active { opacity: 0.8; }
 </div>
 
 <script>
-/* ===== BLOCK GESTURE ZOOM (iOS) ===== */
+/* ===== BLOKADA ZOOM iOS ===== */
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('gesturechange', e => e.preventDefault());
 document.addEventListener('gestureend', e => e.preventDefault());
@@ -149,20 +149,16 @@ if ('serviceWorker' in navigator) {
 
 /* ===== THEME ===== */
 const savedTheme = localStorage.getItem("theme");
-if (savedTheme) {
-  document.body.classList.toggle("dark", savedTheme === "dark");
-} else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-  document.body.classList.add("dark");
-}
+if (savedTheme) document.body.classList.toggle("dark", savedTheme === "dark");
+else if (window.matchMedia("(prefers-color-scheme: dark)").matches) document.body.classList.add("dark");
+
 const themeToggle = document.getElementById("themeToggle");
 function updateThemeButton() {
-  themeToggle.textContent = document.body.classList.contains("dark")
-    ? "☀️ Tryb jasny" : "🌙 Tryb ciemny";
+  themeToggle.textContent = document.body.classList.contains("dark") ? ☀️ Tryb jasny" : "🌙 Tryb ciemny";
 }
 themeToggle.onclick = () => {
   document.body.classList.toggle("dark");
-  localStorage.setItem("theme",
-    document.body.classList.contains("dark") ? "dark" : "light");
+  localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
   updateThemeButton();
 };
 updateThemeButton();
@@ -184,17 +180,14 @@ const content = document.getElementById("content");
 const totalEl = document.getElementById("total");
 
 /* ===== SEARCH ===== */
-search.addEventListener("input", e => {
-  searchText = e.target.value.toLowerCase();
-  render();
-});
+const search = document.getElementById("search");
+search.addEventListener("input", e => { searchText = e.target.value.toLowerCase(); render(); });
 
 /* ===== RENDER ===== */
 function render() {
   content.innerHTML = "";
   data.categories.forEach(cat => {
-    const items = data.procedures
-      .filter(p => p.category === cat && p.name.toLowerCase().includes(searchText))
+    const items = data.procedures.filter(p => p.category===cat && p.name.toLowerCase().includes(searchText))
       .sort((a,b) => b.favorite - a.favorite);
     if (!items.length) return;
 
@@ -204,7 +197,7 @@ function render() {
 
     items.forEach(p => {
       const row = document.createElement("div");
-      row.className = "procedure" + (p.qty > 0 ? " active" : "");
+      row.className = "procedure" + (p.qty>0 ? " active" : "");
 
       const left = document.createElement("div");
       left.className = "left";
@@ -212,31 +205,31 @@ function render() {
       const fav = document.createElement("span");
       fav.className = "favorite";
       fav.textContent = p.favorite ? "❤️" : "🤍";
-      fav.onclick = () => { p.favorite = !p.favorite; update(); };
+      fav.onclick = ()=>{ p.favorite=!p.favorite; update(); };
 
       const name = document.createElement("span");
       name.textContent = `${p.name} (${p.value} zł)`;
-      left.append(fav, name);
+      left.append(fav,name);
 
       const minus = document.createElement("button");
-      minus.textContent = "−";
-      minus.onclick = () => { if (p.qty > 0) p.qty--; update(); };
+      minus.textContent="−";
+      minus.onclick=()=>{ if(p.qty>0) p.qty--; update(); };
 
       const qty = document.createElement("span");
-      qty.className = "qty";
-      qty.textContent = p.qty;
+      qty.className="qty";
+      qty.textContent=p.qty;
 
       const plus = document.createElement("button");
-      plus.textContent = "+";
-      plus.onclick = () => { p.qty++; update(); };
+      plus.textContent="+";
+      plus.onclick=()=>{ p.qty++; update(); };
 
       row.append(left, minus, qty, plus);
 
-      if (editMode) {
+      if(editMode){
         const del = document.createElement("span");
-        del.className = "delete";
-        del.textContent = "✕";
-        del.onclick = () => { data.procedures.splice(data.procedures.indexOf(p),1); update(); };
+        del.className="delete";
+        del.textContent="✕";
+        del.onclick=()=>{ data.procedures.splice(data.procedures.indexOf(p),1); update(); };
         row.appendChild(del);
       }
 
@@ -245,32 +238,30 @@ function render() {
   });
 }
 
-/* ===== CALCULATE / UPDATE ===== */
-function calculate() {
-  totalEl.textContent = data.procedures.reduce((s,p) => s + p.value * p.qty, 0);
-}
-function save() { localStorage.setItem("data", JSON.stringify(data)); }
-function update() { save(); render(); calculate(); }
+/* ===== UPDATE / CALCULATE ===== */
+function calculate(){ totalEl.textContent = data.procedures.reduce((s,p)=>s + p.value*p.qty,0); }
+function save(){ localStorage.setItem("data",JSON.stringify(data)); }
+function update(){ save(); render(); calculate(); }
 
 /* ===== EDIT MODE ===== */
 const editBtn = document.getElementById("editBtn");
 const editor = document.getElementById("editor");
-editBtn.onclick = () => {
-  editMode = !editMode;
-  editor.style.display = editMode ? "block" : "none";
-  editBtn.textContent = editMode ? "Zapisz" : "Edytuj";
+editBtn.onclick = ()=>{
+  editMode=!editMode;
+  editor.style.display=editMode?"block":"none";
+  editBtn.textContent=editMode?"Zapisz":"Edytuj";
 };
 
 /* ===== ADD PROCEDURE / CATEGORY ===== */
-function addProcedure() {
-  if (!newName.value || !newValue.value || !newCategory.value) return;
-  if (!data.categories.includes(newCategory.value)) data.categories.push(newCategory.value);
+function addProcedure(){
+  if(!newName.value||!newValue.value||!newCategory.value)return;
+  if(!data.categories.includes(newCategory.value))data.categories.push(newCategory.value);
   data.procedures.push({ name:newName.value,value:Number(newValue.value),category:newCategory.value,qty:0,favorite:false });
   newName.value=newValue.value=newCategory.value="";
   update();
 }
-function addCategory() {
-  if (categoryName.value && !data.categories.includes(categoryName.value)) {
+function addCategory(){
+  if(categoryName.value && !data.categories.includes(categoryName.value)){
     data.categories.push(categoryName.value);
     categoryName.value="";
     update();
@@ -279,50 +270,48 @@ function addCategory() {
 
 /* ===== RESET BUTTON ===== */
 const resetBtn = document.getElementById("resetBtn");
-resetBtn.onclick = () => {
-  if (!confirm("Czy na pewno chcesz zresetować wszystkie wybrane procedury?")) return;
-  data.procedures.forEach(p => p.qty = 0);
+resetBtn.onclick=()=>{
+  if(!confirm("Czy na pewno chcesz zresetować wszystkie wybrane procedury?"))return;
+  data.procedures.forEach(p=>p.qty=0);
   update();
 };
 
-/* ===== IMPORT GOOGLE SHEETS ===== */
-const SHEET_ID = "1NCJRIh4rf1S2RfnOPjeqQbzVXVC22qZ2bJIVnpbum80"; // <-- Twój arkusz
+/* ===== GOOGLE SHEETS IMPORT ===== */
+const SHEET_ID="1NCJRIh4rf1S2RfnOPjeqQbzVXVC22qZ2bJIVnpbum80";
 
-async function importFromSheet() {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
-  try {
-    const res = await fetch(url);
-    const text = await res.text();
-    const lines = text.trim().split("\n").slice(1);
+async function importFromSheet(){
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
+  try{
+    const res=await fetch(url);
+    const text=await res.text();
+    const lines=text.trim().split("\n").slice(1);
 
-    const newProcedures = [];
-    const categories = new Set();
+    const newProcedures=[];
+    const categories=new Set();
 
-    lines.forEach(line => {
-      const [name, value, category] = line.split(",");
-      if (!name || !value || !category) return;
+    lines.forEach(line=>{
+      const [name,value,category]=line.split(",");
+      if(!name||!value||!category)return;
 
-      const numericValue = parseFloat(value.replace(/[^0-9.-]+/g,""));
-      if (!isNaN(numericValue)) {
+      const numericValue=parseFloat(value.replace(/[^0-9.-]+/g,""));
+      if(!isNaN(numericValue)){
         categories.add(category.trim());
-        const existing = data.procedures.find(p => p.name===name.trim());
+        const existing=data.procedures.find(p=>p.name===name.trim());
         newProcedures.push({
-          name: name.trim(),
-          value: numericValue,
-          category: category.trim(),
-          qty: existing?.qty || 0,
-          favorite: existing?.favorite || false
+          name:name.trim(),
+          value:numericValue,
+          category:category.trim(),
+          qty:existing?.qty||0,
+          favorite:existing?.favorite||false
         });
       }
     });
 
-    data.categories = [...categories];
-    data.procedures = newProcedures;
+    data.categories=[...categories];
+    data.procedures=newProcedures;
     update();
     alert("Dane zsynchronizowane ✅");
-  } catch(err) {
-    alert("Błąd pobierania danych: "+err);
-  }
+  }catch(err){ alert("Błąd pobierania danych: "+err); }
 }
 
 update();
